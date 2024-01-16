@@ -3,6 +3,7 @@
 #define PARSERH
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -22,6 +23,7 @@ char* symbol(char* cmd);
 char* dest(char* cmd);
 char* jump(char* cmd);
 char* comp(char* cmd);
+uint16_t symbol_to_address(char* symbol);
 
 
 #endif

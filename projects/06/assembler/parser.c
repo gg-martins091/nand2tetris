@@ -2,6 +2,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 
 FILE* initialize_parser(char* filename) {
   FILE* fp = fopen(filename, "rw");
@@ -9,34 +13,6 @@ FILE* initialize_parser(char* filename) {
     perror("Error openning source file");
   }
 
-  char cur_cmd[MAX_LINE_SIZE];
-
-  while (has_more_commands(fp)) {
-    if (!advance(fp, cur_cmd)) {
-      continue;
-    }
-
-    COMMAND_TYPE ct = command_type(cur_cmd);
-
-    printf("(%d) Line of code: %s ", ct, cur_cmd);
-
-    if (ct == C_COMMAND) {
-      char* d = dest(cur_cmd);
-      char* j = jump(cur_cmd);
-      char* c = comp(cur_cmd);
-      printf("-> Comp: %s ", c);
-      printf("-> Destination: %s ", d);
-      printf("-> Jump: %s ", j);
-    }
-
-    if (ct == A_COMMAND) {
-      char* s = symbol(cur_cmd);
-      printf("-> Symbol: %s", s);
-    }
-
-    printf("\n");
-
-  }
   return fp;
 }
 
@@ -83,12 +59,8 @@ bool advance(FILE* file, char* cmd) {
 
     strcpy(cmd, cur_cmd);
     return true;
-  } else {
-    perror("Failure reading line");
-  }
-
+  } 
   return false;
-
 }
 
 COMMAND_TYPE command_type(char* cmd) {
@@ -185,3 +157,20 @@ char* comp(char* cmd) {
   return c;
 }
 
+uint16_t symbol_to_address(char* symbol) {
+  char *end;
+  errno = 0; // To detect overflow or underflow
+  long num = strtol(symbol, &end, 10); // Convert to long to check range
+
+  if (end == symbol) {
+    perror("Provided symbol was not a number");
+  } else if (*end != '\0') {
+    perror("Provided symbol was not a valid number");
+  } else if (errno == ERANGE || num < 0 || num > 0x7FFF) {
+    perror("Provided symbol overflows 15 bits");
+  } else {
+    return (uint16_t)num;
+  }
+
+  return -1;
+}
