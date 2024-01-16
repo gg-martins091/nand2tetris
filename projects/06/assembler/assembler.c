@@ -26,31 +26,29 @@ int main(int argc, char * argv[]) {
     }
 
     COMMAND_TYPE ct = command_type(cur_cmd);
-    /* printf("(%d) Line of code: %s ", ct, cur_cmd); */
 
     uint16_t dd = 0, jj = 0, cc = 0;
     if (ct == C_COMMAND) {
       char* d = dest(cur_cmd);
       dd = c_dest(d);
+      free(d);
       char* j = jump(cur_cmd);
       jj = c_jump(j);
+      free(j);
       char* c = comp(cur_cmd);
       cc = c_comp(c);
-      /* printf("-> Comp: %s (%d)", c, cc); */
-      /* printf("-> Destination: %s (%d) ", d, dd); */
-      /* printf("-> Jump: %s (%d) ", j, jj); */
+      free(c);
     }
 
     uint16_t sa = 0;
     if (ct == A_COMMAND) {
       char* s = symbol(cur_cmd);
       sa = symbol_to_address(s);
+      free(s);
       if (sa >= UINT16_MAX) {
         printf("Line of code (%d): %s ", line, cur_cmd);
         exit(-1);
       }
-      char* ss = c_tostr(sa);
-      /* printf("-> Symbol: %s (%s)", s, ss); */
     }
 
     uint16_t line = 0 | (((int) ct * 7) << 13); // c instruction;
@@ -59,6 +57,7 @@ int main(int argc, char * argv[]) {
     char* lc = c_tostr(line);
 
     fprintf(out, "%s\n", lc);
+    free(lc);
   }
 
   fclose(out);

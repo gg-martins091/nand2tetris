@@ -78,14 +78,13 @@ COMMAND_TYPE command_type(char* cmd) {
 
 char* symbol(char* cmd) {
   char* cmdstr = cmd;
-  size_t len = strlen(cmd);
+  size_t len = strlen(cmd) - 1;
   char* s = malloc(len);
   if (s == NULL) {
     return NULL;
   }
 
   strncpy(s, ++cmdstr, len);
-  s[len] = '\0';
 
   return s;
 }
