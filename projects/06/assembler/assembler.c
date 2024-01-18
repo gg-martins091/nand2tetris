@@ -89,6 +89,7 @@ int main(int argc, char * argv[]) {
 
   fclose(out);
   fclose(in);
+  st_free();
 
   return 0;
 }

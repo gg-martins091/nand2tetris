@@ -20,6 +20,9 @@ typedef struct {
     Symbol* symbols;
     size_t cap;
     size_t length;
+
+    size_t _cil;
+    int* _ci;
 } SymbolTable;
 
 

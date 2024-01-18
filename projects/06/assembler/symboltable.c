@@ -22,6 +22,8 @@ void st_initialize(void) {
     st.cur_rom_address = 0x0;
     st.cap = INITIAL_CAPACITY;
     st.length = 0;
+    st._cil = 0;
+    st._ci = malloc(sizeof(int) * 50000);
     st.symbols = calloc(st.cap, sizeof(Symbol));
     if (st.symbols == NULL) {
       perror("Could not initialize symbol table");
@@ -137,6 +139,7 @@ static const char* _st_set_entry(Symbol* symbols, size_t cap, const char* symbol
       return NULL;
     }
     ++(*length);
+    st._ci[st._cil++] = index;
   }
 
   symbols[index].symbol = (char*) symbol;
@@ -171,11 +174,14 @@ static bool _st_expand() {
   return true;
 }
 
-void st_free(void) {
-  for(size_t i = 0; i < st.length; i++) {
-    free(st.symbols[i].symbol);
+void st_free() {
+  for(size_t i = 0; i < st._cil; i++) {
+    if(st.symbols[st._ci[i]].symbol != NULL) {
+      free(st.symbols[st._ci[i]].symbol);
+    }
   }
 
+  free(st._ci);
   free(st.symbols);
 }
 
