@@ -10,7 +10,7 @@ CFLAGS = -Wall -Wextra -g
 TARGET = assembler
 
 # Object files
-OBJS = assembler.o parser.o code.o
+OBJS = assembler.o parser.o code.o symboltable.o
 
 # Default target
 all: $(TARGET)
@@ -28,6 +28,9 @@ parser.o: parser.c parser.h
 
 code.o: code.c code.h
 	$(CC) $(CFLAGS) -c code.c
+
+symboltable.o: symboltable.c symboltable.h
+	$(CC) $(CFLAGS) -c symboltable.c
 
 # Clean the build
 clean:

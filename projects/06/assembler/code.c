@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-
-
 uint16_t c_dest(char* mnemonic) {
   if (mnemonic == NULL) return 0;
 

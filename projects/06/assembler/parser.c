@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "symboltable.h"
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
@@ -20,12 +21,21 @@ bool has_more_commands(FILE* file) {
   return !feof(file);
 }
 
-bool advance(FILE* file, char* cmd) {
-  char cur_cmd[MAX_LINE_SIZE];
+inline char* remove_leading_spaces(char* str) {
+  while (*str != '\0' && isspace((unsigned char)*str)) {
+      str++;
+  }
 
-  if (fgets(cur_cmd, MAX_LINE_SIZE, file)) {
+  return str;
+}
+
+bool advance(FILE* file, char* cmd) {
+  char in_cmd[MAX_LINE_SIZE];
+
+  if (fgets(in_cmd, MAX_LINE_SIZE, file)) {
+    char* cur_cmd = remove_leading_spaces(in_cmd);
     size_t len = strlen(cur_cmd);
-    bool is_empty_line = len == 2 && isspace((unsigned char) cur_cmd[0]);
+    bool is_empty_line = len == 0;// && isspace((unsigned char) cur_cmd[0]);
     bool is_comment_line = strncmp(cur_cmd, "//", 2) == 0;
 
     if (is_empty_line || is_comment_line) {
@@ -40,21 +50,6 @@ bool advance(FILE* file, char* cmd) {
         end--;
       }
       *(end + 1) = '\0';
-
-      // remove leading white spaces
-      size_t start = 0;
-      while (cur_cmd[start] != '\0' && isspace((unsigned char) cur_cmd[start])) {
-        start++;
-      }
-
-      if (start > 0) {
-        int j = 0;
-        while (cur_cmd[j + start] != '\0') {
-          cur_cmd[j] = cur_cmd[j + start];
-          j++;
-        }
-        cur_cmd[j] = '\0';
-      }
     }
 
     strcpy(cmd, cur_cmd);
@@ -76,16 +71,16 @@ COMMAND_TYPE command_type(char* cmd) {
   return C_COMMAND;
 }
 
-char* symbol(char* cmd) {
+char* symbol(char* cmd, COMMAND_TYPE ct) {
   char* cmdstr = cmd;
-  size_t len = strlen(cmd) - 1;
-  char* s = malloc(len);
+  size_t len = strlen(cmd) - ((ct == A_COMMAND) ? 1 : 2);
+  char* s = malloc(len + 1);
   if (s == NULL) {
     return NULL;
   }
+  s[len] = '\0';
 
   strncpy(s, ++cmdstr, len);
-
   return s;
 }
 
@@ -101,9 +96,9 @@ char* dest(char* cmd) {
   if (d == NULL) {
     return NULL;
   }
+  d[length] = '\0';
 
   strncpy(d, cmd, length);
-  d[length] = '\0';
 
   return d;
 }
@@ -120,9 +115,9 @@ char* jump(char* cmd) {
   if (j == NULL) {
     return NULL;
   }
+  j[length] = '\0';
 
   strncpy(j, ++eqpos, length);
-  j[length] = '\0';
 
   return j;
 }
@@ -162,9 +157,16 @@ uint16_t symbol_to_address(char* symbol) {
   long num = strtol(symbol, &end, 10); // Convert to long to check range
 
   if (end == symbol) {
-    perror("Provided symbol was not a number");
+    uint16_t address = st_get_address(symbol);
+    if (address >= UINT16_MAX) {
+      return st_add_symbol(symbol);
+    } else {
+      return address;
+    }
   } else if (*end != '\0') {
-    perror("Provided symbol was not a valid number");
+      char err[20 + strlen(symbol)];
+      snprintf(err, sizeof(err), "%lu Undefined symbol2: %s", strlen(symbol), symbol);
+      perror(err);
   } else if (errno == ERANGE || num < 0 || num > 0x7FFF) {
     perror("Provided symbol overflows 15 bits");
   } else {
