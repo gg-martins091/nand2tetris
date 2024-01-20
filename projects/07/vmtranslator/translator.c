@@ -92,7 +92,7 @@ VMFILE *get_files(const char *input, size_t *fc /* *fq = 0 */) {
       size_t input_len = strlen(input);
       size_t name_len = strlen(entry->d_name);
 
-      char* full_path = malloc(input_len + name_len + strlen(entry->d_name) + 1);
+      char* full_path = malloc(input_len + name_len + 1);
       memcpy(full_path, input, input_len);
       memcpy(full_path + input_len, entry->d_name, name_len);
       full_path[input_len + name_len] = '\0';
