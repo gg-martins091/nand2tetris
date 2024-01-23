@@ -42,7 +42,7 @@ int fill_file_struc(VMFILE *file, const char *input, const char *fn, const char*
 }
 
 // Not the best code but will do for now.
-VMFILE *get_files(const char *input, size_t *fc /* *fq = 0 */) {
+VMFILE *get_files(const char *input, char **out, size_t *fc /* *fq = 0 */) {
   const char *fn = strrchr(input, '/');
   if (fn != NULL) {
     ++fn;
@@ -65,12 +65,15 @@ VMFILE *get_files(const char *input, size_t *fc /* *fq = 0 */) {
       fprintf(stderr, "Couldn't fill file struct\n");
       exit(EXIT_FAILURE);
     }
+    *out = strdup(files[0].fn);
     ++(*fc);
   } else {
     size_t capacity = 10;
     DIR *dir;
     struct dirent *entry;
     files = malloc(capacity * sizeof(char*));
+    *out = (char *) malloc(sizeof(char) * 4);
+    memcpy(*out, "out", 4);
 
     if (!files) {
         fprintf(stderr, "Memory allocation failed for files\n");
@@ -119,23 +122,49 @@ int main(int argc, char * argv[]) {
   // ./translator ../some/path/MyFile.vm
   // or
   // ./translator ../some/path/
-  VMFILE* files = get_files(argv[1], &fq);
+  char *outt;
+  VMFILE *files = get_files(argv[1], &outt, &fq);
   /* printf("Assembling file: %s\n", input); */
 
+  FILE* out = fopen("out.asm", "w");
   for(int i = 0; i < fq; i++) {
-    printf("%s - %s - %s\n", files[i].fn, files[i].fp, files[i].fd);
+    FILE* in = initialize_parser(files[i].fp);
+
+    char cur_cmd[MAX_LINE_SIZE];
+
+    int loc = 0;
+    // generating labels
+    while (has_more_commands(in)) {
+      loc++;
+      if (!advance(in, cur_cmd)) {
+        continue;
+      }
+
+      COMMAND_TYPE ct = command_type(cur_cmd);
+
+      char *a1, *a1_end;
+      int *a2;
+      if (ct != C_RETURN) {
+        a1 = arg1(cur_cmd, ct, &a1_end);
+        printf("arg1: %s\n", a1);
+      }
+
+      if (ct == C_PUSH || ct == C_POP || ct == C_FUNCTION || ct == C_CALL) {
+        a2 = arg2(a1_end);
+        printf("arg2: %d\n", a2);
+      }
+
+      if (ct == C_PUSH || ct == C_POP) {
+        c_write_push_pop(out, ct, a1, a2);
+      }
+
+      if (ct == C_ARITHMETIC) {
+        c_write_arithmetic(out, a1);
+      }
+    }
+
+    fclose(in);
   }
-
-  /* FILE* in = initialize_parser(input); */
-  /* FILE* out = fopen("out.hack", "w"); */
-
-  /* char cur_cmd[MAX_LINE_SIZE]; */
-
-  /* int loc = 0; */
-  /* // generating labels */
-
-  /* fclose(out); */
-  /* fclose(in); */
 
   return 0;
 }

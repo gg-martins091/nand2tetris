@@ -1,13 +1,12 @@
 
-/* #ifndef CODEH */
-/* #define CODEH */
-/* #include <stdint.h> */
+#ifndef CODEH
+#define CODEH
+#include "parser.h"
+#include <stdint.h>
+#include <stdio.h>
+
+void c_write_push_pop(FILE *out, COMMAND_TYPE ct, const char *seg, int *index);
+void c_write_arithmetic(FILE *out, const char *cmd);
 
 
-/* uint16_t c_dest(char* mnemonic); */
-/* uint16_t c_comp(char* mnemonic); */
-/* uint16_t c_jump(char* mnemonic); */
-/* char* c_tostr(uint16_t m); */
-
-
-/* #endif */
+#endif

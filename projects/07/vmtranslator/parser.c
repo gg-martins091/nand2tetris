@@ -1,176 +1,132 @@
-/* #include "parser.h" */
-/* #include <stdbool.h> */
-/* #include <string.h> */
-/* #include <ctype.h> */
-/* #include <stdint.h> */
-/* #include <stdlib.h> */
-/* #include <errno.h> */
-/* #include <limits.h> */
+#include "parser.h"
+#include <stdbool.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 
-/* FILE* initialize_parser(char* filename) { */
-/*   FILE* fp = fopen(filename, "rw"); */
-/*   if (fp == NULL) { */
-/*     perror("Error openning source file"); */
-/*   } */
+FILE* initialize_parser(char* filename) {
+  FILE* fp = fopen(filename, "rw");
+  if (fp == NULL) {
+    perror("Error openning source file");
+  }
 
-/*   return fp; */
-/* } */
+  return fp;
+}
 
-/* bool has_more_commands(FILE* file) { */
-/*   return !feof(file); */
-/* } */
+bool has_more_commands(FILE* file) {
+  return !feof(file);
+}
 
-/* inline char* remove_leading_spaces(char* str) { */
-/*   while (*str != '\0' && isspace((unsigned char)*str)) { */
-/*       str++; */
-/*   } */
+inline char* remove_leading_spaces(char* str) {
+  while (*str != '\0' && isspace((unsigned char)*str)) {
+      str++;
+  }
 
-/*   return str; */
-/* } */
+  return str;
+}
 
-/* bool advance(FILE* file, char* cmd) { */
-/*   char in_cmd[MAX_LINE_SIZE]; */
+bool advance(FILE* file, char* cmd) {
+  char in_cmd[MAX_LINE_SIZE];
 
-/*   if (fgets(in_cmd, MAX_LINE_SIZE, file)) { */
-/*     char* cur_cmd = remove_leading_spaces(in_cmd); */
-/*     size_t len = strlen(cur_cmd); */
-/*     bool is_empty_line = len == 0;// && isspace((unsigned char) cur_cmd[0]); */
-/*     bool is_comment_line = strncmp(cur_cmd, "//", 2) == 0; */
+  if (fgets(in_cmd, MAX_LINE_SIZE, file)) {
+    char* cur_cmd = remove_leading_spaces(in_cmd);
+    size_t len = strlen(cur_cmd);
+    bool is_empty_line = len == 0;// && isspace((unsigned char) cur_cmd[0]);
+    bool is_comment_line = strncmp(cur_cmd, "//", 2) == 0;
 
-/*     if (is_empty_line || is_comment_line) { */
-/*       return false; */
-/*     } else { */
-/*       char* comment_start = strstr(cur_cmd, "//"); */
-/*       if (comment_start != NULL) { */
-/*         * comment_start = '\0'; */
-/*       } */
-/*       char* end = cur_cmd + strlen(cur_cmd) - 1; */
-/*       while (end > cur_cmd && isspace((unsigned char)* end)) { */
-/*         end--; */
-/*       } */
-/*       *(end + 1) = '\0'; */
-/*     } */
+    if (is_empty_line || is_comment_line) {
+      return false;
+    } else {
+      char* comment_start = strstr(cur_cmd, "//");
+      if (comment_start != NULL) {
+        * comment_start = '\0';
+      }
+      char* end = cur_cmd + strlen(cur_cmd) - 1;
+      while (end > cur_cmd && isspace((unsigned char)* end)) {
+        end--;
+      }
+      *(end + 1) = '\0';
+    }
 
-/*     strcpy(cmd, cur_cmd); */
-/*     return true; */
-/*   } */ 
-/*   return false; */
-/* } */
+    strcpy(cmd, cur_cmd);
+    return true;
+  } 
+  return false;
+}
 
-/* COMMAND_TYPE command_type(char* cmd) { */
-/*   if (cmd[0] == '@') { */
-/*     return A_COMMAND; */
-/*   } */
+COMMAND_TYPE command_type(char* cmd) {
+  if (strncmp(cmd, "push", 4) == 0) {
+    return C_PUSH;
+  } else if (strncmp(cmd, "pop", 3) == 0) {
+    return C_POP;
+  }
 
-/*   // Label */
-/*   if (cmd[0] == '(') { */
-/*     return L_COMMAND; */
-/*   } */
-
-/*   return C_COMMAND; */
-/* } */
-
-/* char* symbol(char* cmd, COMMAND_TYPE ct) { */
-/*   char* cmdstr = cmd; */
-/*   size_t len = strlen(cmd) - ((ct == A_COMMAND) ? 1 : 2); */
-/*   char* s = malloc(len + 1); */
-/*   if (s == NULL) { */
-/*     return NULL; */
-/*   } */
-/*   s[len] = '\0'; */
-
-/*   strncpy(s, ++cmdstr, len); */
-/*   return s; */
-/* } */
+  return C_ARITHMETIC;
+}
 
 
-/* char* dest(char* cmd) { */
-/*   const char* eqpos = strchr(cmd, '='); */
-/*   if (eqpos == NULL) { */
-/*     return NULL; */
-/*   } */
+char* arg1(char* cmd, COMMAND_TYPE ct, char **end) {
+  if (ct == C_ARITHMETIC) {
+    char* ret = strdup(cmd);
+    return cmd;
+  }
 
-/*   size_t length = eqpos - cmd; */
-/*   char* d = malloc(length + 1); */
-/*   if (d == NULL) { */
-/*     return NULL; */
-/*   } */
-/*   d[length] = '\0'; */
+  char* a1_start = strchr(cmd, ' ');
+  if (a1_start == NULL) {
+    fprintf(stderr, "Invalid command: %s\n", cmd);
+    exit(EXIT_FAILURE);
+  }
+  while(*a1_start != '\0' && isspace((unsigned char) *a1_start)) {
+    ++a1_start;
+  }
 
-/*   strncpy(d, cmd, length); */
+  char* a1_end = a1_start;
+  while(*a1_end != '\0' && !isspace((unsigned char) *a1_end)) {
+    ++a1_end;
+  }
+  *end = a1_end;
 
-/*   return d; */
-/* } */
+  size_t len = a1_end - a1_start;
+  char* s = malloc(len + 1);
+  if (s == NULL) {
+    return NULL;
+  }
+  s[len] = '\0';
 
-/* char* jump(char* cmd) { */
-/*   const char* eqpos = strchr(cmd, ';'); */
-/*   if (eqpos == NULL) { */
-/*     return NULL; */
-/*   } */
+  memcpy(s, a1_start, len);
+  return s;
+}
 
-/*   char* end = cmd + strlen(cmd) - 1; */
-/*   size_t length = end - eqpos; */
-/*   char* j = malloc(length + 1); */
-/*   if (j == NULL) { */
-/*     return NULL; */
-/*   } */
-/*   j[length] = '\0'; */
+int* arg2(char* cmd) {
+  char* a2_start = cmd;
+  if (a2_start == NULL) {
+    fprintf(stderr, "Invalid command: %s\n", cmd);
+    exit(EXIT_FAILURE);
+  }
+  while(*a2_start != '\0' && isspace((unsigned char) *a2_start)) {
+    ++a2_start;
+  }
 
-/*   strncpy(j, ++eqpos, length); */
+  int *a2 = malloc(sizeof(int));
+  sscanf(a2_start, "%d", a2);
 
-/*   return j; */
-/* } */
+  return a2;
+}
 
-/* char* comp(char* cmd) { */
-/*   char* eq = strchr(cmd, ';'); */
-/*   size_t length = 0; */
-/*   if (eq != NULL) { */
-/*     length = eq - cmd; */
-/*     eq = cmd; */
-/*   } else { */
-/*     eq = strchr(cmd, '='); */
-/*     if (eq == NULL) { */
-/*       perror("Invalid command"); */
-/*       return NULL; */
-/*     } */
+const char* get_register(const char *seg) {
+  if (strcmp(seg, "local") == 0) {
+    return "LCL";
+  } else if (strcmp(seg, "argument") == 0) {
+    return "ARG";
+  } else if (strcmp(seg, "this") == 0) {
+    return "THIS";
+  } else if (strcmp(seg, "that") == 0) {
+    return "THAT";
+  }
 
-/*     char* end = cmd + strlen(cmd) - 1; */
-/*     length = end - eq; */
-/*     ++eq; */
-/*   } */
-
-/*   char* c = malloc(length + 1); */
-/*   if (c == NULL) { */
-/*     return NULL; */
-/*   } */
-
-/*   strncpy(c, eq, length); */
-/*   c[length] = '\0'; */
-
-/*   return c; */
-/* } */
-
-/* uint16_t symbol_to_address(char* symbol) { */
-/*   char *end; */
-/*   errno = 0; // To detect overflow or underflow */
-/*   long num = strtol(symbol, &end, 10); // Convert to long to check range */
-
-/*   if (end == symbol) { */
-/*     uint16_t address = st_get_address(symbol); */
-/*     if (address >= UINT16_MAX) { */
-/*       return st_add_symbol(symbol); */
-/*     } else { */
-/*       return address; */
-/*     } */
-/*   } else if (*end != '\0') { */
-/*       char err[20 + strlen(symbol)]; */
-/*       snprintf(err, sizeof(err), "%lu Undefined symbol2: %s", strlen(symbol), symbol); */
-/*       perror(err); */
-/*   } else if (errno == ERANGE || num < 0 || num > 0x7FFF) { */
-/*     perror("Provided symbol overflows 15 bits"); */
-/*   } else { */
-/*     return (uint16_t)num; */
-/*   } */
-
-/*   return -1; */
-/* } */
+  fprintf(stderr, "Invalid segment: %s\n", seg);
+  exit(EXIT_FAILURE);
+}
